@@ -6,7 +6,7 @@ var xml = require("node-xml")
         cookie: 'gsid_CTandWM=' + config.gsid + '; ' +
           '_WEIBO_UID=' + config.uid
       , host: 'weibo.cn'
-      , referer: 'http://weibo.cn/?gsid=' + config.gsid
+      , referer: 'http://weibo.cn/?gsid=' + config.gsid + '&st=' + config.st
     }
   , weibo = request.defaults({
         uri: 'http://weibo.cn/mblog/sendmblog?gsid=' + config.gsid

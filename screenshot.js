@@ -20,9 +20,9 @@ var s = module.exports = function(url, f) {
       } catch (ee) {
         e = ee
       }
+      if (!body.file) e = new Error('no body.file')
       if (body.error) e = new Error(body.error)
     }
-    console.log(body.file);
     if (e) f(e)
     else request({
         uri: 'http://screener.brachium-system.net/' + body.file
