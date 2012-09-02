@@ -1,0 +1,11 @@
+The source code of http://weibo.com/HackerNewsDaily
+
+Change config.json.sample to config.json, log in to http://weibo.cn to get the uid, gsid and the st parameter for post url.
+
+Use `node hnd.js 3` for example to post top 3 items from hackerne.ws/rss.
+
+I just added a crontab
+
+    0,10,20,30,40,50 * * * * /home/yuest/.nvm/v0.8.5/bin/node /home/yuest/prod/hnd/hnd.js 3 >> /home/yuest/prod/hnd/log
+
+to run it every 10 minutes.
