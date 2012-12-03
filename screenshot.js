@@ -20,6 +20,7 @@ var s = module.exports = function(url, f) {
       } catch (ee) {
         e = ee
       }
+      if (!body) e = new Error('no body')
       if (!body.file) e = new Error('no body.file')
       if (body.error) e = new Error(body.error)
     }
