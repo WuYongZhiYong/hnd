@@ -8,7 +8,7 @@ Use `node hnd.js 3` for example to post top 3 items from hackerne.ws/rss.
 
 I just added a crontab
 
-    0,10,20,30,40,50 * * * * /home/yuest/.nvm/v0.8.5/bin/node /home/yuest/prod/hnd/hnd.js 3 >> /home/yuest/prod/hnd/log
+    0,10,20,30,40,50 * * * * /usr/bin/node /home/undozen/prod/hnd/hnd.js 3 >> /home/undozen/prod/hnd/log
 
 to run it every 10 minutes.
 
@@ -16,7 +16,7 @@ to run it every 10 minutes.
 
 MIT License
 
-Copyright (c) 2012 Yuest Wang
+Copyright (c) 2012 @undozen
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the 'Software'), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
