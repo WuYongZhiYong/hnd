@@ -20,9 +20,7 @@ function getHNItems( cb ) {
   http.request({
       host: 'news.ycombinator.com'
     , path: '/rss'
-  }, function (res) {
-    console.log(res.statusCode)
-    res.pipe(concat(function (error, body) {
+  }, function (res) { res.pipe(concat(function (error, body) {
     var parser = new xml.SaxParser(function(_cb) {
       var items = [], i = -1, elems = ['title', 'link', 'comments'], e;
       _cb.onStartElementNS(function(elem, attrs, prefix, uri, namespaces) {
@@ -78,8 +76,10 @@ function postToWeibo( item ) {
       screenshot(item.link, function(e, b) {
         var resfunc = function (msg) {
           return function(e, r, body) {
-            if (e || body) console.log('ERROR: ' + msg)
-            if (body) console.log(body)
+            if (e) {
+              console.log('ERROR: ' + msg)
+              if (body) console.log(body)
+            }
             console.log(item)
           }
         }
