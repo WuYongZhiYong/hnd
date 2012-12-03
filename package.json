@@ -4,5 +4,6 @@
   , "dependencies": {
         "node-xml": ">= 1.0.0"
       , "request": ">= 0.0.1"
+      , "concat-stream": ">= 0.0.1"
     }
 }

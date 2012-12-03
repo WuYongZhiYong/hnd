@@ -1,17 +1,9 @@
 var xml = require("node-xml")
   , request = require('request')
+  , concat = require('concat-stream')
   , fs = require('fs')
+  , http = require('http')
   , config = JSON.parse(fs.readFileSync(__dirname+'/config.json', 'utf-8'))
-  , defaultHeaders = {
-        cookie: 'gsid_CTandWM=' + config.gsid + '; ' +
-          '_WEIBO_UID=' + config.uid
-      , host: 'weibo.cn'
-      , referer: 'http://weibo.cn/?gsid=' + config.gsid
-    }
-  , weibo = request.defaults({
-        uri: 'http://weibo.cn/mblog/sendmblog?gsid=' + config.gsid + '&st=' + config.st
-      , headers: defaultHeaders
-    })
   , screenshot = require('./screenshot')
 
 function copyExtend() {
@@ -25,7 +17,12 @@ function copyExtend() {
 }
 
 function getHNItems( cb ) {
-  request('http://hackerne.ws/rss', function (error, response, body) {
+  http.request({
+      host: 'news.ycombinator.com'
+    , path: '/rss'
+  }, function (res) {
+    console.log(res.statusCode)
+    res.pipe(concat(function (error, body) {
     var parser = new xml.SaxParser(function(_cb) {
       var items = [], i = -1, elems = ['title', 'link', 'comments'], e;
       _cb.onStartElementNS(function(elem, attrs, prefix, uri, namespaces) {
@@ -56,10 +53,10 @@ function getHNItems( cb ) {
         }
       });
     });
-    if (!error && response.statusCode == 200) {
+    if (!error) {
       parser.parseString(body);
     }
-  })
+  })) }).end()
 }
 
 function postToWeibo( item ) {
@@ -69,35 +66,43 @@ function postToWeibo( item ) {
     var result = JSON.parse(body)
       , ellipsis, content
     if (!result.urls) {
-      console.log('=== not posted ===')
+      console.log('ERROR: shorten url fail')
       console.log(item)
     } else {
       item.linkShorted = result.urls[0].url_short
       item.commentsShorted = result.urls[1].url_short
-      ellipsis = item.title.length > 178 ? '...' : ''
-      content = '《'+item.title.substring(0,178) + ellipsis + '》原文：' +
+      ellipsis = item.title.length > 220 ? '...' : ''
+      content = '《'+item.title.substring(0,220) + ellipsis + '》原文：' +
                 encodeURI(item.linkShorted).replace(/ /g, '+') +
-                ' HN评论：'+encodeURI(item.commentsShorted).replace(/ /g, '+') + ' ' +
-                new Date().toUTCString()
+                ' HN评论：'+encodeURI(item.commentsShorted).replace(/ /g, '+')
       screenshot(item.link, function(e, b) {
-        var resfunc = function(e, r, body) {
-          if (e || body) console.log('=== not posted ===')
-          console.log(item)
+        var resfunc = function (msg) {
+          return function(e, r, body) {
+            if (e || body) console.log('ERROR: ' + msg)
+            if (body) console.log(body)
+            console.log(item)
+          }
         }
         if (e) {
-          weibo.post({
-              form: { rl: '0', content: content }
-          }, resfunc)
+          request.post({
+              uri: 'https://api.weibo.com/2/statuses/update.json'
+            , form: { access_token: config.ACCESS_TOKEN, status: content }
+          }, resfunc('update fail'))
         } else {
-          weibo.post({
-              encoding: 'utf8'
-            , headers: copyExtend(defaultHeaders, {
+          request.post({
+              uri: 'https://api.weibo.com/2/statuses/upload.json'
+            , encoding: 'utf8'
+            , headers: {
                   'content-type': 'multipart/form-data'
-              })
+              }
             , multipart: [
                   {
                       body: content
-                    , 'Content-Disposition': 'form-data; name="content"'
+                    , 'Content-Disposition': 'form-data; name="status"'
+                  }
+                , {
+                      body: config.ACCESS_TOKEN
+                    , 'Content-Disposition': 'form-data; name="access_token"'
                   }
                 , {
                       body: b
@@ -105,7 +110,7 @@ function postToWeibo( item ) {
                     , 'Content-Type': 'image/png'
                   }
               ]
-          }, resfunc)
+          }, resfunc('upload fail'))
         }
       })
     }
