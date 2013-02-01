@@ -21,8 +21,8 @@ var s = module.exports = function(url, f) {
         e = ee
       }
       if (!body) e = new Error('no body')
-      if (!body.file) e = new Error('no body.file')
-      if (body.error) e = new Error(body.error)
+      if (body && !body.file) e = new Error('no body.file')
+      if (body && body.error) e = new Error(body.error)
     }
     if (e) f(e)
     else request({
