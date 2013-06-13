@@ -17,10 +17,9 @@ function copyExtend() {
 }
 
 function getHNItems( cb ) {
-  http.request({
-      host: 'news.ycombinator.com'
-    , path: '/rss'
-  }, function (res) { res.pipe(concat(function (error, body) {
+  request({
+      uri: 'http://news.ycombinator.com/rss'
+  }, function (error, r, body) {
     var parser = new xml.SaxParser(function(_cb) {
       var items = [], i = -1, elems = ['title', 'link', 'comments'], e;
       _cb.onStartElementNS(function(elem, attrs, prefix, uri, namespaces) {
@@ -54,67 +53,28 @@ function getHNItems( cb ) {
     if (!error) {
       parser.parseString(body);
     }
-  })) }).end()
+  });
 }
 
 function postToWeibo( item ) {
-  request('http://api.weibo.com/short_url/shorten.json?source=2887826189&url_long=' +
-          encodeURIComponent(item.link) + '&url_long=' +
-          encodeURIComponent(item.comments), function(e, r, body) {
-    var result = JSON.parse(body)
-      , ellipsis, content
-    if (!result.urls) {
-      console.log('ERROR: shorten url fail')
+  var ellipsis, content
+  ellipsis = item.title.length > 220 ? '...' : ''
+  content = '《'+item.title.substring(0,220) + ellipsis + '》原文：' +
+            encodeURI(item.link).replace(/ /g, '+') +
+            ' HN评论：'+encodeURI(item.comments).replace(/ /g, '+')
+  var resfunc = function (msg) {
+    return function(e, r, body) {
+      if (e) {
+        console.log('ERROR: ' + msg)
+        if (body) console.log(body)
+      }
       console.log(item)
-    } else {
-      item.linkShorted = result.urls[0].url_short
-      item.commentsShorted = result.urls[1].url_short
-      ellipsis = item.title.length > 220 ? '...' : ''
-      content = '《'+item.title.substring(0,220) + ellipsis + '》原文：' +
-                encodeURI(item.linkShorted).replace(/ /g, '+') +
-                ' HN评论：'+encodeURI(item.commentsShorted).replace(/ /g, '+')
-      screenshot(item.link, function(e, b) {
-        var resfunc = function (msg) {
-          return function(e, r, body) {
-            if (e) {
-              console.log('ERROR: ' + msg)
-              if (body) console.log(body)
-            }
-            console.log(item)
-          }
-        }
-        if (e) {
-          request.post({
-              uri: 'https://api.weibo.com/2/statuses/update.json'
-            , form: { access_token: config.ACCESS_TOKEN, status: content }
-          }, resfunc('update fail'))
-        } else {
-          request.post({
-              uri: 'https://api.weibo.com/2/statuses/upload.json'
-            , encoding: 'utf8'
-            , headers: {
-                  'content-type': 'multipart/form-data'
-              }
-            , multipart: [
-                  {
-                      body: content
-                    , 'Content-Disposition': 'form-data; name="status"'
-                  }
-                , {
-                      body: config.ACCESS_TOKEN
-                    , 'Content-Disposition': 'form-data; name="access_token"'
-                  }
-                , {
-                      body: b
-                    , 'Content-Disposition': 'form-data; name="pic"; filename="web_screenshot.png"'
-                    , 'Content-Type': 'image/png'
-                  }
-              ]
-          }, resfunc('upload fail'))
-        }
-      })
     }
-  })
+  }
+  request.post({
+      uri: 'https://api.weibo.com/2/statuses/update.json'
+    , form: { access_token: config.ACCESS_TOKEN, status: content }
+  }, resfunc('update fail'))
 }
 var posted;
 getHNItems( function ( items ) {
@@ -126,6 +86,8 @@ getHNItems( function ( items ) {
   l = parseInt(process.argv[2], 10) || 1;
   function next(i) {
     var item = items[i]
+    item.link = item.link.replace(/\u0000/g, '/')
+    item.comments = item.comments.replace(/\u0000/g, '/')
     if (!item || i >= l) return
     if (!posted[ item.id ]) {
       posted[ item.id ] = 1;
